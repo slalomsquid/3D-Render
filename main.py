@@ -9,43 +9,44 @@ FPS = 60
 SCREEN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Tic Tac Toe 3D")
 
-points = [
-    [-1,-1,1],
-    [1,-1,1],
-    [1,-1,-1],
-    [-1,-1,-1],
-    [-1,1,1],
-    [1,1,1],
-    [1,1,-1],
-    [-1,1,-1],
-]
-lines = [
-    [0,1],
-    [1,2],
-    [2,3],
-    [3,0],
-
-    [4,5],
-    [5,6],
-    [6,7],
-    [7,4],
-
-    [0,4],
-    [1,5],
-    [2,6],
-    [3,7],
-]
-faces = [
-    [0,1,2],
-    [5,1,0],
-    [2,1,5],
-    # [2,0,5]
-]
-
-offset = [0,0,5]
-
 def main():
     clock = pygame.time.Clock()
+
+    points = [
+        [-1,-1,1],
+        [1,-1,1],
+        [1,-1,-1],
+        [-1,-1,-1],
+        [-1,1,1],
+        [1,1,1],
+        [1,1,-1],
+        [-1,1,-1],
+    ]
+    lines = [
+        [0,1],
+        [1,2],
+        [2,3],
+        [3,0],
+
+        [4,5],
+        [5,6],
+        [6,7],
+        [7,4],
+
+        [0,4],
+        [1,5],
+        [2,6],
+        [3,7],
+    ]
+    faces = [
+        [1,0,2],
+        [1,5,0],
+        [1,2,5],
+        [2,0,5]
+    ]
+    offset = [0,0,5]
+    rotation : list[float]= [0.0,0.0,0.0]
+
     running = True
 
     while running:
@@ -57,10 +58,12 @@ def main():
                 case pygame.QUIT:
                     running = False
 
-        for idx, point in enumerate(points):
-            points[idx] = rotate_y(point, math.pi*0.5*delta_time)
+        # Apply rotation to base points, preventing compoinding floaing point errors
+        rotation[2] = set_angle(rotation[2] + math.pi * 0.5 * delta_time) # 90 degree / second
 
-        draw(points, lines, faces, offset)
+        new_pts = [rotate_y(point, rotation[2]) for point in points]
+
+        draw(new_pts, lines, faces, offset)
 
     pygame.quit()
 
@@ -149,7 +152,7 @@ def point_to_plane(point, offset):
     if z == 0:
         z += 0.01
 
-    return (point[0]/z, point[1]/z)
+    return (x / z, y / z)
 
 def plane_to_screen(point):
     """Projects a plane coord (-1...1, -1...1) to a screen coordinate"""
@@ -186,6 +189,12 @@ def rotate_y(point, angle_rad):
     
     # Y remains unchanged during a Y-axis rotation
     return (new_x, y, new_z)
+
+# def set_angle(angle: float) -> float:
+#     angle = angle % 360  # Returns the angle in the range 0-360
+#     return angle
+def set_angle(angle: float) -> float:
+    return angle % (2 * math.pi)
 
 if __name__ == "__main__":
     main()
