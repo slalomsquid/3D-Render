@@ -80,43 +80,31 @@ def draw(points, lines, faces, offset):
     for line in lines:
         pygame.draw.line(SCREEN, (255, 255, 255), screen_points[line[0]], screen_points[line[1]], 1)
 
-
-    # for point in screen_points:
-    #     pygame.draw.circle(SCREEN, (255, 255, 255), plane_to_screen(point_to_plane(point, offset)), 5)
-
-    # for face in faces:
-    #     pygame.draw.polygon(SCREEN, (255, 255, 255), (plane_to_screen(point_to_plane(points[face[0]], offset)), plane_to_screen(point_to_plane(points[face[1]], offset)), plane_to_screen(point_to_plane(points[face[2]], offset))))
-
-    # for line in lines:
-    #     pygame.draw.lines(SCREEN, (0, 255, 0), False, (plane_to_screen(point_to_plane(points[line[0]], offset)), plane_to_screen(point_to_plane(points[line[1]], offset))))
-
-
-    # for face in faces:
-    #         p0 = screen_points[face[0]]
-    #         p1 = screen_points[face[1]]
-    #         p2 = screen_points[face[2]]
-            
-    #         # Calculate the 2D cross product of edge vectors (p1-p0) and (p2-p0)
-    #         # Formula: (x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0)
-    #         winding = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p1[1] - p0[1]) * (p2[0] - p0[0])
-            
-    #         # Determine color based on winding orientation
-    #         if winding > 0:
-    #             color = (50, 120, 255)  # Blue = Front Face (Counter-Clockwise)
-    #         else:
-    #             color = (255, 70, 70)   # Red = Back Face (Clockwise)
-
-    #         pygame.draw.polygon(SCREEN, color, (p0, p1, p2))
-
     face_depths = []
     for face in faces:
-        # Get actual 3D Z values
+
+        # Calculate position of each vertes
+        x0 = points[face[0]][0] + offset[0]
+        x1 = points[face[1]][0] + offset[0]
+        x2 = points[face[2]][0] + offset[0]
+
+        y0 = points[face[0]][1] + offset[1]
+        y1 = points[face[1]][1] + offset[1]
+        y2 = points[face[2]][1] + offset[1]
+
         z0 = points[face[0]][2] + offset[2]
         z1 = points[face[1]][2] + offset[2]
         z2 = points[face[2]][2] + offset[2]
+
+        # Average to find coordinate of center
+        avg_x = (x0 + x1 + x2) / 3.0
+        avg_y = (y0 + y1 + y2) / 3.0
+        avg_z = (z0 + z1 + z2) / 3.0
+
+        # Find distance from camera to prevent clipping issues caused by z depth
+        m = length((avg_x, avg_y, avg_z))
         
-        avg_depth = (z0 + z1 + z2) / 3.0
-        face_depths.append((avg_depth, face))
+        face_depths.append((m, face))
 
     # Sort faces from FARTHEST to CLOSEST (Descending order of Z depth)
     # reverse=True ensures large Z values (far away) are drawn first
@@ -150,7 +138,7 @@ def point_to_plane(point, offset):
 
     # prevent divide by 0
     if z == 0:
-        z += 0.01
+        z += 0.001
 
     return (x / z, y / z)
 
@@ -158,21 +146,22 @@ def plane_to_screen(point):
     """Projects a plane coord (-1...1, -1...1) to a screen coordinate"""
     return ((point[0] + 1)/2*WIDTH,(1-(point[1] + 1)/2)*HEIGHT)
 
-def rotate_z(point, angle_rad):
+
+def rotate_x(point, angle_rad):
     """
-    Rotates a 3D point counterclockwise around the Z-axis by a given angle in radians.
+    Rotates a 3D point counterclockwise around the Y-axis by a given angle in radians.
     """
     x, y, z = point
     
     cos_a = math.cos(angle_rad)
     sin_a = math.sin(angle_rad)
     
-    # Calculate the new X and Y coordinates
-    new_x = x * cos_a - y * sin_a
-    new_y = x * sin_a + y * cos_a
+    # Calculate the new Y and Z coordinates
+    new_y = y * cos_a + z * sin_a
+    new_z = -y * sin_a + z * cos_a
     
-    # Z remains unchanged during a Z-axis rotation
-    return (new_x, new_y, z)
+    # X remains unchanged during a X-axis rotation
+    return (x, new_y, new_z)
 
 def rotate_y(point, angle_rad):
     """
@@ -190,9 +179,25 @@ def rotate_y(point, angle_rad):
     # Y remains unchanged during a Y-axis rotation
     return (new_x, y, new_z)
 
-# def set_angle(angle: float) -> float:
-#     angle = angle % 360  # Returns the angle in the range 0-360
-#     return angle
+def rotate_z(point, angle_rad):
+    """
+    Rotates a 3D point counterclockwise around the Z-axis by a given angle in radians.
+    """
+    x, y, z = point
+    
+    cos_a = math.cos(angle_rad)
+    sin_a = math.sin(angle_rad)
+    
+    # Calculate the new X and Y coordinates
+    new_x = x * cos_a - y * sin_a
+    new_y = x * sin_a + y * cos_a
+    
+    # Z remains unchanged during a Z-axis rotation
+    return (new_x, new_y, z)
+
+def length(vect):
+    return math.sqrt(vect[0]**2 + vect[1]**2 + vect[2]**2)
+
 def set_angle(angle: float) -> float:
     return angle % (2 * math.pi)
 
